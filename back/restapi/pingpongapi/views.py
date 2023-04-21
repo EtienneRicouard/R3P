@@ -44,6 +44,8 @@ def create_job(request):
     'jobId': str(jobId),
     'iteration': 0,
     'data': '[]',
+    'positions': 0,
+    'colors': 0,
   }
   serializer = PingpongJobSerializer(data=job)
   if serializer.is_valid():
