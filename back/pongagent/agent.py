@@ -55,7 +55,7 @@ def callback(ch, method, properties, body):
         randomPosition = randint(0, width*height - 1)
         if not randomPosition in positions:
             break
-    colors = set([x[0] for x in pixelArray])
+    colors = set([x[1] for x in pixelArray])
     while True:
         randomColor = randint(0, 255*255*255 - 1)
         if not randomColor in colors:
