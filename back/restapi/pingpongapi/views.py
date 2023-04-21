@@ -12,6 +12,7 @@ import json
 import math
 from PIL import Image
 import numpy
+import os
 
 @api_view(['GET'])
 def ApiOverview(request):
@@ -47,7 +48,8 @@ def create_job(request):
   serializer = PingpongJobSerializer(data=job)
   if serializer.is_valid():
     routing_key = 'pingpong'
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    host = os.getenv('RABBITMQ_HOST', 'localhost')
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=host))
     channel = connection.channel()
     channel.exchange_declare(exchange='pingpongtopic', exchange_type='topic')
     channel.basic_publish(

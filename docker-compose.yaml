@@ -1,0 +1,63 @@
+version: "3.7"
+services:
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    container_name: 'rabbitmq'
+    restart: always
+    ports:
+      - 15672:15672
+      - 5672:5672
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15672"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - rabbitmq_go_net
+  r3pagentping:
+    build: back/pongagent/.
+    container_name: 'r3pagentping'
+    restart: always
+    environment:
+      - "RABBITMQ_HOST=rabbitmq"
+      - "PONGAPI_HOST=r3prestapi"
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    networks:
+      - rabbitmq_go_net
+  r3pagentpong:
+    build: back/pongagent/.
+    container_name: 'r3pagentpong'
+    restart: always
+    environment:
+      - "RABBITMQ_HOST=rabbitmq"
+      - "PONGAPI_HOST=r3prestapi"
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    networks:
+      - rabbitmq_go_net
+  r3pui:
+    build: ui/.
+    container_name: 'r3pui'
+    restart: always
+    ports:
+      - 3000:3000
+    networks:
+      - rabbitmq_go_net
+  r3prestapi:
+    build: back/restapi/.
+    container_name: 'r3prestapi'
+    restart: always
+    environment:
+      - "RABBITMQ_HOST=rabbitmq"
+    ports:
+      - 8000:8000
+    networks:
+      - rabbitmq_go_net
+networks:
+  rabbitmq_go_net:
+    driver: bridge

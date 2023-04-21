@@ -133,6 +133,8 @@ CORS_ORIGIN_WHITELIST = (
   'http://localhost:3000',
 )
 
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'r3prestapi']
+
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "Access-Control-Allow-Origin",
 ]

@@ -36,8 +36,3 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
-
-https://www.django-rest-framework.org/api-guide/schemas/#generating-an-openapi-schema
-https://www.section.io/engineering-education/communicating-between-your-django-apis-using-rabbitmq/
-https://dev.to/ramonak/react-how-to-create-a-custom-progress-bar-component-in-5-minutes-2lcl
-https://medium.com/geekculture/a-beginners-guide-to-websockets-in-django-e45e68c68a71

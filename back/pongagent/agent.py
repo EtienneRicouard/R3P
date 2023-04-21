@@ -4,10 +4,14 @@ import json
 from random import seed
 from random import randint
 import requests
+import os
 
 seed(1)
+host = os.getenv('RABBITMQ_HOST', 'localhost')
+pongapihost = os.getenv('PONGAPI_HOST', 'localhost')
+
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost'))
+    pika.ConnectionParameters(host=host))
 channel = connection.channel()
 
 channel.exchange_declare(exchange='pingpongtopic', exchange_type='topic')
@@ -30,18 +34,19 @@ def callback(ch, method, properties, body):
     width = image['width']
     height = image['height']
     pixelArray = json.loads(image['data'])
+    # TODO: For now, append a random position/color
     pixelArray.append([randint(0, width*height - 1), randint(0, 255*255*255)])
     strPixelArray = json.dumps(pixelArray, separators=(',', ':'))
     print(len(pixelArray))
     # Update the api with the final data
     if len(pixelArray) == width*height:
-        url = f'http://localhost:8000/pingpong/update/{jobId}/'
+        url = f'http://{pongapihost}:8000/pingpong/update/{jobId}/'
         body = {'iteration': len(pixelArray), 'data': strPixelArray}
         requests.post(url, json = body)
         return
     # Update iteration every 100 iterations
     elif len(pixelArray)%100 == 0:
-        url = f'http://localhost:8000/pingpong/update/{jobId}/'
+        url = f'http://{pongapihost}:8000/pingpong/update/{jobId}/'
         body = {'iteration': len(pixelArray)}
         requests.post(url, json = body)
     job = {
