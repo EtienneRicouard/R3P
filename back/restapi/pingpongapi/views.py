@@ -8,6 +8,8 @@ from .serializers import PingpongJobSerializer
 from .models import PingpongJob
 import pika
 import uuid
+import json
+import math
 from PIL import Image
 import numpy
 
@@ -40,7 +42,7 @@ def create_job(request):
     'height': request.data['height'],
     'jobId': str(jobId),
     'iteration': 0,
-    'data': [],
+    'data': '[]',
   }
   serializer = PingpongJobSerializer(data=job)
   if serializer.is_valid():
@@ -49,12 +51,19 @@ def create_job(request):
     channel = connection.channel()
     channel.exchange_declare(exchange='pingpongtopic', exchange_type='topic')
     channel.basic_publish(
-      exchange='pingpongtopic', routing_key=routing_key, body=str(job))
+      exchange='pingpongtopic', routing_key=routing_key, body=json.dumps(job, separators=(',', ':')))
     connection.close()
     serializer.save()
     return Response({"status": "success", "message": serializer.data}, status=status.HTTP_201_CREATED)
   else:
     return Response({"status": "fail", "message": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def status_job(request, pk):
+  # Retrieve the item
+  item = PingpongJob.objects.get(pk=pk)
+  serializer = PingpongJobSerializer(instance=item)
+  return Response(serializer.data, status=status.HTTP_200_OK)
 
 @swagger_auto_schema(method='post', request_body=openapi.Schema(
     type=openapi.TYPE_OBJECT,
@@ -83,8 +92,17 @@ def render_job(request, pk):
   # Retrieve the item
   item = PingpongJob.objects.get(pk=pk)
   serializer = PingpongJobSerializer(instance=item)
-  print(serializer.data)
-  imarray = numpy.random.rand(serializer.data['height'], serializer.data['width'], 3) * 255
+  coords = json.loads(serializer.data['data'])
+  imarray = numpy.zeros((serializer.data['height'], serializer.data['width'], 3))
+  for coord in coords:
+    x = coord[0] % serializer.data['width']
+    y = math.floor(coord[0]/serializer.data['width'])
+    Blue =  coord[1] & 255
+    Green = (coord[1] >> 8) & 255
+    Red =   (coord[1] >> 16) & 255
+    imarray[x, y, 0] = Red
+    imarray[x, y, 1] = Green
+    imarray[x, y, 2] = Blue
   im = Image.fromarray(imarray.astype('uint8')).convert('RGBA')
   response = HttpResponse(content_type='application/octet-stream')
   response.write(im.tobytes())

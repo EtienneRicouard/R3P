@@ -32,18 +32,21 @@ export class NewRenderForm extends React.Component<Props, State> {
       processingState.processing = true;
       this.setState(processingState);
       // Start a new rendering with the given parameters
-      // TODO: POST request with body containing width/height
       const response = await fetch(this.props.renderImageUrl, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          width: this.state.width,
+          height: this.state.height,
+        }),
       });
       // Retrieve the jobId and update the current job status
       const body = await response.json();
 
-      this.props.onSubmit({jobId: body.jobId, completed: false, width: this.state.width, height: this.state.height});
+      this.props.onSubmit({jobId: body.message.jobId, completed: false, width: this.state.width, height: this.state.height});
       // Set the state to successful and cleanup the error message
       const newState = {...this.state};
       newState.error = undefined;

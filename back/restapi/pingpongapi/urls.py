@@ -18,7 +18,8 @@ schema_view = get_schema_view(
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
     path('', views.ApiOverview, name='home'),
-    path('pingpong/create', views.create_job, name='create-job'),
+    path('pingpong/create/', views.create_job, name='create-job'),
+    path('pingpong/status/<str:pk>/', views.status_job, name='status-job'),
     path('pingpong/update/<str:pk>/', views.update_job, name='update-job'),
     path('pingpong/render/<str:pk>/', views.render_job, name='render-job'),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),

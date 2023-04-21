@@ -7,9 +7,6 @@ interface Props {
 }
 
 interface State {
-  buffer?: Uint8ClampedArray;
-  width?: number;
-  height?: number;
   error?: string;
 }
 
@@ -32,12 +29,13 @@ export class PingPongCanvas extends React.Component<Props, State> {
       return;
     }
 
+    this.setState({ error: undefined });
+
     try {
-      // TODO Add JobId to request
-      const response = await fetch(this.props.uiUrl, {
+      const response = await fetch(`${this.props.uiUrl}/${this.props.job.jobId}/`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/octet-stream',
+          'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
         },
       });

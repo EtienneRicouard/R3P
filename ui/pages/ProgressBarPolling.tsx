@@ -41,8 +41,7 @@ export class ProgressBarPolling extends React.Component<Props, State> {
     }
 
     try {
-      // TODO Add JobId to request
-      const response = await fetch(this.props.statusUrl, {
+      const response = await fetch(`${this.props.statusUrl}/${this.props.job.jobId}/`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -50,11 +49,10 @@ export class ProgressBarPolling extends React.Component<Props, State> {
         },
       });
       const status = await response.json();
-      const progress = status.iteration / ((status.width * status.height) - 1) * 100;
+      const progress = status.iteration / (status.width * status.height) * 100;
       this.setState({ progress });
       // No need to keep polling
-      // TODO: set back 100 when generation will work
-      if (progress > 80) {
+      if (progress === 100) {
         const newJobStatus = { ...this.props.job };
         newJobStatus.completed = true;
         this.props.onJobCompletion(newJobStatus);
