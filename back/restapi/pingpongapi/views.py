@@ -97,7 +97,7 @@ def render_job(request, pk):
   item = PingpongJob.objects.get(pk=pk)
   serializer = PingpongJobSerializer(instance=item)
   coords = json.loads(serializer.data['data'])
-  imarray = numpy.zeros((serializer.data['height'], serializer.data['width'], 3))
+  imarray = numpy.zeros((serializer.data['width'], serializer.data['height'], 3))
   for coord in coords:
     x = coord[0] % serializer.data['width']
     y = math.floor(coord[0]/serializer.data['width'])
