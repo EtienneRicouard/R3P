@@ -4,6 +4,7 @@ from rest_framework import status
 from django.http import HttpResponse
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+
 from .serializers import PingpongJobSerializer
 from .models import PingpongJob
 import pika
@@ -13,13 +14,15 @@ import math
 from PIL import Image
 import numpy
 import os
+import flatbuffers
+from . import R3PImage
 
 @api_view(['GET'])
 def ApiOverview(request):
   api_urls = {
-    'Trigger a new render': '/pingpong/createjob',
-    'Update render': '/pingpong/update/pk',
-    'Render': '/pingpong/render/pk',
+    'Trigger a new render': '/pingpong/create/',
+    'Update render': '/pingpong/update/pk/',
+    'Render': '/pingpong/render/pk/',
   }
 
   return Response(api_urls)
@@ -38,14 +41,32 @@ def create_job(request):
 
   # Generate a random uid
   jobId = uuid.uuid4()
+
+  # Create the flatbuffer to transmit to rabbitmq
+  builder = flatbuffers.Builder()
+  name = builder.CreateString(str(jobId))
+  R3PImage.StartColorsVector(builder, 0)
+  colors = builder.EndVector()
+  R3PImage.StartPositionsVector(builder, 0)
+  positions = builder.EndVector()
+  R3PImage.Start(builder)
+  R3PImage.AddColors(builder, colors)
+  R3PImage.AddPositions(builder, positions)
+  R3PImage.AddJobid(builder, name)
+  R3PImage.AddHeight(builder, int(request.data['height']))
+  R3PImage.AddWidth(builder, int(request.data['width']))
+  R3PImage.AddIteration(builder, 0)
+  r3pImage = R3PImage.End(builder)
+  builder.Finish(r3pImage)
+  buf = builder.Output()
+  print(buf)
+  # Declare job as stored in the db
   job = {
+    'jobId': str(jobId),
     'width': request.data['width'],
     'height': request.data['height'],
-    'jobId': str(jobId),
     'iteration': 0,
     'data': '[]',
-    'positions': 0,
-    'colors': 0,
   }
   serializer = PingpongJobSerializer(data=job)
   if serializer.is_valid():
@@ -55,7 +76,7 @@ def create_job(request):
     channel = connection.channel()
     channel.exchange_declare(exchange='pingpongtopic', exchange_type='topic')
     channel.basic_publish(
-      exchange='pingpongtopic', routing_key=routing_key, body=json.dumps(job, separators=(',', ':')))
+      exchange='pingpongtopic', routing_key=routing_key, body=buf)
     connection.close()
     serializer.save()
     return Response({"status": "success", "message": serializer.data}, status=status.HTTP_201_CREATED)
