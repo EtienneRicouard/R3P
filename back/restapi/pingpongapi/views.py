@@ -16,6 +16,28 @@ import numpy
 import os
 import flatbuffers
 from . import R3PImage
+from multiprocessing import resource_tracker, shared_memory
+
+def remove_shm_from_resource_tracker():
+    """Monkey-patch multiprocessing.resource_tracker so SharedMemory won't be tracked
+
+    More details at: https://bugs.python.org/issue38119
+    """
+
+    def fix_register(name, rtype):
+        if rtype == "shared_memory":
+            return
+        return resource_tracker._resource_tracker.register(self, name, rtype)
+    resource_tracker.register = fix_register
+
+    def fix_unregister(name, rtype):
+        if rtype == "shared_memory":
+            return
+        return resource_tracker._resource_tracker.unregister(self, name, rtype)
+    resource_tracker.unregister = fix_unregister
+
+    if "shared_memory" in resource_tracker._CLEANUP_FUNCS:
+        del resource_tracker._CLEANUP_FUNCS["shared_memory"]
 
 @api_view(['GET'])
 def ApiOverview(request):
@@ -41,26 +63,51 @@ def create_job(request):
 
   # Generate a random uid
   jobId = uuid.uuid4()
-
+  height = int(request.data['height'])
+  width = int(request.data['width'])
   # Create the flatbuffer to transmit to rabbitmq
   builder = flatbuffers.Builder()
   name = builder.CreateString(str(jobId))
-  R3PImage.StartColorsVector(builder, 0)
-  colors = builder.EndVector()
-  R3PImage.StartPositionsVector(builder, 0)
-  positions = builder.EndVector()
   R3PImage.Start(builder)
-  R3PImage.AddColors(builder, colors)
-  R3PImage.AddPositions(builder, positions)
   R3PImage.AddJobid(builder, name)
-  R3PImage.AddHeight(builder, int(request.data['height']))
-  R3PImage.AddWidth(builder, int(request.data['width']))
+  R3PImage.AddHeight(builder, height)
+  R3PImage.AddWidth(builder, width)
   R3PImage.AddIteration(builder, 0)
   r3pImage = R3PImage.End(builder)
   builder.Finish(r3pImage)
   buf = builder.Output()
-  print(buf)
-  # Declare job as stored in the db
+
+  # Have to patch the resource tracker to make shm work properly
+  remove_shm_from_resource_tracker()
+  bufferSize = height*width*4 #uint32
+  shmPos = shared_memory.SharedMemory(create=True, name=f"{str(jobId)}-pos", size=bufferSize)
+  posBuf = shmPos.buf
+  print(f"{str(jobId)}-pos")
+  print(shmPos.name)
+  for n in range(bufferSize):
+    posBuf[n] = 0
+  shmPos.close()
+
+  shmCol = shared_memory.SharedMemory(create=True, name=f"{str(jobId)}-col", size=bufferSize)
+  colBuf = shmCol.buf
+  for n in range(bufferSize):
+    colBuf[n] = 0
+  shmCol.close()
+
+  bitmaskSize = height*width
+  shmPosMask = shared_memory.SharedMemory(create=True, name=f"{str(jobId)}-posMask", size=bitmaskSize)
+  posMaskBuf = shmPosMask.buf
+  for n in range(bitmaskSize):
+    posMaskBuf[n] = 1
+  shmPosMask.close()
+
+  colmaskSize = 256*256*256
+  shmColMask = shared_memory.SharedMemory(create=True, name=f"{str(jobId)}-colMask", size=colmaskSize)
+  colMaskBuf = shmColMask.buf
+  for n in range(colmaskSize):
+    colMaskBuf[n] = 1
+  shmColMask.close()
+
   job = {
     'jobId': str(jobId),
     'width': request.data['width'],

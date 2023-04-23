@@ -52,61 +52,7 @@ class R3PImage(object):
             return self._tab.Get(flatbuffers.number_types.Uint16Flags, o + self._tab.Pos)
         return 0
 
-    # R3PImage
-    def Positions(self, j):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
-        if o != 0:
-            a = self._tab.Vector(o)
-            return self._tab.Get(flatbuffers.number_types.Uint32Flags, a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4))
-        return 0
-
-    # R3PImage
-    def PositionsAsNumpy(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
-        if o != 0:
-            return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Uint32Flags, o)
-        return 0
-
-    # R3PImage
-    def PositionsLength(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
-        if o != 0:
-            return self._tab.VectorLen(o)
-        return 0
-
-    # R3PImage
-    def PositionsIsNone(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
-        return o == 0
-
-    # R3PImage
-    def Colors(self, j):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
-        if o != 0:
-            a = self._tab.Vector(o)
-            return self._tab.Get(flatbuffers.number_types.Uint32Flags, a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 4))
-        return 0
-
-    # R3PImage
-    def ColorsAsNumpy(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
-        if o != 0:
-            return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Uint32Flags, o)
-        return 0
-
-    # R3PImage
-    def ColorsLength(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
-        if o != 0:
-            return self._tab.VectorLen(o)
-        return 0
-
-    # R3PImage
-    def ColorsIsNone(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
-        return o == 0
-
-def R3PImageStart(builder): builder.StartObject(6)
+def R3PImageStart(builder): builder.StartObject(4)
 def Start(builder):
     return R3PImageStart(builder)
 def R3PImageAddJobid(builder, jobid): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(jobid), 0)
@@ -121,18 +67,6 @@ def AddWidth(builder, width):
 def R3PImageAddHeight(builder, height): builder.PrependUint16Slot(3, height, 0)
 def AddHeight(builder, height):
     return R3PImageAddHeight(builder, height)
-def R3PImageAddPositions(builder, positions): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(positions), 0)
-def AddPositions(builder, positions):
-    return R3PImageAddPositions(builder, positions)
-def R3PImageStartPositionsVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def StartPositionsVector(builder, numElems):
-    return R3PImageStartPositionsVector(builder, numElems)
-def R3PImageAddColors(builder, colors): builder.PrependUOffsetTRelativeSlot(5, flatbuffers.number_types.UOffsetTFlags.py_type(colors), 0)
-def AddColors(builder, colors):
-    return R3PImageAddColors(builder, colors)
-def R3PImageStartColorsVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def StartColorsVector(builder, numElems):
-    return R3PImageStartColorsVector(builder, numElems)
 def R3PImageEnd(builder): return builder.EndObject()
 def End(builder):
     return R3PImageEnd(builder)

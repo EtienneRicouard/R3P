@@ -52,7 +52,16 @@ python agent.py
   - Technically, positions (if we limit to 4096x4096 images) and RGB colors are 24 bits. These are saved in uint32 so we could reduce the binary stream size by around 25%. I'm not expecting to have huge gains with this except on large images. Right now, the bottleneck is not here.
   - One is to start making assumptions on the system and assume that the restapi and the workers are on the same machine. By using shared memory to communicate between the workers, this will save the communication time and also allow us to add some caching system within the shared memory (analyzing the whole picture at every iteration to look for available positions/colors is killing the performance). Pong agents would still be stateless as the shared memory would be managed by the restapi, pong agents can still be instantiated on the fly if needed and generate new pixels on the image.
   - If we can't assume that all workers will be on the same machine and that communication needs to be over the network, the next step would be to remove rabbitmq to avoid the overhead of the messaging queue and have the 2 pongagents communicate with one another through websockets. That will make us lose the scalability and reliability that rabbitmq was providing to not miss a message in case an agent has an issue but it should be faster if the message is sent directly between the pong agents.
-
+- I decided to go with the 2nd point about the shared memory optimisation (branch ipc) and a color mask / position mask acting as a cache system in shared memory
+  - SharedMemory module on Linux is bugged: https://github.com/python/cpython/issues/82300 so I had to workaround with the provided monkey patch
+  - Around 3s for 56x56 rendering
+  - Around 16s for 128x128 rendering
+  - Around 1mn06s for 256x256 rendering
+  - Profiling on 128x128 gives: Processing Time=2.18827223777771 Idle Time=7.649784803390503, Publishing Time=6.456343412399292
+  - Profiling on 256x256 gives: Processing Time=9.218340396881104 Idle Time=31.0879647731781, Publishing Time=26.1380832195282
+- One thing to note is that if we are unlucky, we could spend an infinite amount of time trying to generate the last positions/colors available in the picture. To control this, I have added a separate logic for the final pixels in order to generate the correct position/color at every guess.
+  - After a few trial and errors finding out a threshold empirically, this gives: Processing Time=9.170251846313477 Idle Time=31.95109248161316, Publishing Time=24.89792037010193
+  - Not a huge gain, I expect this to scale depending on the image size
 
 ## TODO
 - Rework code to transmit endpoints and ports using env variables for flexibility

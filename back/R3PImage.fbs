@@ -5,8 +5,6 @@ table R3PImage {
   iteration:uint32;
   width:uint16;
   height:uint16;
-  positions:[uint32];
-  colors:[uint32];
 }
 
 root_type R3PImage;
