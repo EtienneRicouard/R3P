@@ -1,9 +1,11 @@
+import struct
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import HttpResponse
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+
 from .serializers import PingpongJobSerializer
 from .models import PingpongJob
 import pika
@@ -13,13 +15,35 @@ import math
 from PIL import Image
 import numpy
 import os
+from multiprocessing import resource_tracker, shared_memory
+
+def remove_shm_from_resource_tracker():
+    """Monkey-patch multiprocessing.resource_tracker so SharedMemory won't be tracked
+
+    More details at: https://bugs.python.org/issue38119
+    """
+
+    def fix_register(name, rtype):
+        if rtype == "shared_memory":
+            return
+        return resource_tracker._resource_tracker.register(self, name, rtype)
+    resource_tracker.register = fix_register
+
+    def fix_unregister(name, rtype):
+        if rtype == "shared_memory":
+            return
+        return resource_tracker._resource_tracker.unregister(self, name, rtype)
+    resource_tracker.unregister = fix_unregister
+
+    if "shared_memory" in resource_tracker._CLEANUP_FUNCS:
+        del resource_tracker._CLEANUP_FUNCS["shared_memory"]
 
 @api_view(['GET'])
 def ApiOverview(request):
   api_urls = {
-    'Trigger a new render': '/pingpong/createjob',
-    'Update render': '/pingpong/update/pk',
-    'Render': '/pingpong/render/pk',
+    'Trigger a new render': '/pingpong/create/',
+    'Update render': '/pingpong/update/pk/',
+    'Render': '/pingpong/render/pk/',
   }
 
   return Response(api_urls)
@@ -38,14 +62,54 @@ def create_job(request):
 
   # Generate a random uid
   jobId = uuid.uuid4()
+  height = int(request.data['height'])
+  width = int(request.data['width'])
+
+  # Have to patch the resource tracker to make shm work properly
+  remove_shm_from_resource_tracker()
+  bufferSize = height*width*4 #uint32
+  shmPos = shared_memory.SharedMemory(create=True, name=f"{str(jobId)}-pos", size=bufferSize)
+  posBuf = shmPos.buf
+  print(f"{str(jobId)}-pos")
+  print(shmPos.name)
+  for n in range(bufferSize):
+    posBuf[n] = 0
+  shmPos.close()
+
+  shmCol = shared_memory.SharedMemory(create=True, name=f"{str(jobId)}-col", size=bufferSize)
+  colBuf = shmCol.buf
+  for n in range(bufferSize):
+    colBuf[n] = 0
+  shmCol.close()
+
+  bitmaskSize = height*width
+  shmPosMask = shared_memory.SharedMemory(create=True, name=f"{str(jobId)}-posMask", size=bitmaskSize)
+  posMaskBuf = shmPosMask.buf
+  for n in range(bitmaskSize):
+    posMaskBuf[n] = 1
+  shmPosMask.close()
+
+  colmaskSize = 256*256*256
+  shmColMask = shared_memory.SharedMemory(create=True, name=f"{str(jobId)}-colMask", size=colmaskSize)
+  colMaskBuf = shmColMask.buf
+  for n in range(colmaskSize):
+    colMaskBuf[n] = 1
+  shmColMask.close()
+
+  # First 4 is the current iteration, 5th is the current status (ping/pong/finished), 6th is a lock for the update
+  statusBufSize = 6
+  shmStatus = shared_memory.SharedMemory(create=True, name=f"{str(jobId)}-status", size=statusBufSize)
+  statusBuf = shmStatus.buf
+  for n in range(statusBufSize):
+    statusBuf[n] = 0
+  shmStatus.close()
+
   job = {
+    'jobId': str(jobId),
     'width': request.data['width'],
     'height': request.data['height'],
-    'jobId': str(jobId),
     'iteration': 0,
     'data': '[]',
-    'positions': 0,
-    'colors': 0,
   }
   serializer = PingpongJobSerializer(data=job)
   if serializer.is_valid():
@@ -55,7 +119,7 @@ def create_job(request):
     channel = connection.channel()
     channel.exchange_declare(exchange='pingpongtopic', exchange_type='topic')
     channel.basic_publish(
-      exchange='pingpongtopic', routing_key=routing_key, body=json.dumps(job, separators=(',', ':')))
+      exchange='pingpongtopic', routing_key=routing_key, body=json.dumps(job))
     connection.close()
     serializer.save()
     return Response({"status": "success", "message": serializer.data}, status=status.HTTP_201_CREATED)
@@ -66,8 +130,24 @@ def create_job(request):
 def status_job(request, pk):
   # Retrieve the item
   item = PingpongJob.objects.get(pk=pk)
-  serializer = PingpongJobSerializer(instance=item)
-  return Response(serializer.data, status=status.HTTP_200_OK)
+  # Look into the SHM if still running
+  try:
+    shmStatus = shared_memory.SharedMemory(create=False, name=f"{item.jobId}-status", size=6)
+    buf = shmStatus.buf
+    # Lock the SHM to avoid being cleared
+    buf[5] = 1
+    iteration = struct.unpack('I', buf[0:4])[0]
+    data = {}
+    data['iteration'] = iteration
+    serializer = PingpongJobSerializer(instance=item, data=data, partial=True)
+    if serializer.is_valid():
+      serializer.save()
+      buf[5] = 0
+      return Response(serializer.data, status=status.HTTP_200_OK)
+  except:
+    item = PingpongJob.objects.get(pk=pk)
+    serializer = PingpongJobSerializer(instance=item)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 @swagger_auto_schema(method='post', request_body=openapi.Schema(
     type=openapi.TYPE_OBJECT,

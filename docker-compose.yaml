@@ -18,11 +18,14 @@ services:
     build: back/pongagent/.
     container_name: 'r3pagentping'
     restart: always
+    ipc: "host"
+    command: [ "python", "./agent.py", "ping" ]
     environment:
       - "RABBITMQ_HOST=rabbitmq"
       - "PONGAPI_HOST=r3prestapi"
     depends_on:
       - rabbitmq
+      - r3prestapi
     links:
       - rabbitmq
     networks:
@@ -31,11 +34,14 @@ services:
     build: back/pongagent/.
     container_name: 'r3pagentpong'
     restart: always
+    ipc: "host"
+    command: [ "python", "./agent.py", "pong" ]
     environment:
       - "RABBITMQ_HOST=rabbitmq"
       - "PONGAPI_HOST=r3prestapi"
     depends_on:
       - rabbitmq
+      - r3prestapi
     links:
       - rabbitmq
     networks:
@@ -52,6 +58,7 @@ services:
     build: back/restapi/.
     container_name: 'r3prestapi'
     restart: always
+    ipc: "host"
     environment:
       - "RABBITMQ_HOST=rabbitmq"
     ports:
