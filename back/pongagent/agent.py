@@ -41,8 +41,9 @@ pongapihost = os.getenv('PONGAPI_HOST', 'localhost')
 # Have to patch the resource tracker to make shm work properly
 remove_shm_from_resource_tracker()
 
+# Todo: do not disable heartbeat and run in a separate thread instead
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host=host))
+    pika.ConnectionParameters(heartbeat=0, host=host))
 channel = connection.channel()
 
 channel.exchange_declare(exchange='pingpongtopic', exchange_type='topic')
@@ -111,9 +112,9 @@ def callback(ch, method, properties, body):
             time.sleep(0.00001)
         iteration = struct.unpack('I', statusBuf[0:4])[0]
         newIteration = iteration + 1
-        # Arbitrary criteria for now, let's say that for the last 0.01%, we are going to generate a correct position every single time
+        # Arbitrary criteria for now, let's say that for the last 0.001%, we are going to generate a correct position every single time
         # instead of randomly trying to land on an empty position
-        if newIteration/(height*width) > 0.9999:
+        if newIteration/(height*width) > 0.99999:
             randomPosition = randint(0, width*height - newIteration)
             availablePosCounter = 0
             for i in range(bitmaskSize):
@@ -133,9 +134,9 @@ def callback(ch, method, properties, body):
         # Fill the buffer with the new position
         posBuf[4*iteration:4*iteration+4] = struct.pack("I", randomPosition)
 
-        # Arbitrary criteria for now, let's say that for the last 0.01%, we are going to generate a correct color every single time
+        # Arbitrary criteria for now, let's say that for the last 0.001%, we are going to generate a correct color every single time
         # instead of randomly trying to land on an empty position
-        if newIteration/colmaskSize > 0.9999:
+        if newIteration/colmaskSize > 0.99999:
             randomColor = randint(0, 256*256*256 - newIteration)
             availableColCounter = 0
             for i in range(bitmaskSize):

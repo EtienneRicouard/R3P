@@ -71,8 +71,9 @@ python agent.py
   - 128x128 Processing Time=1.1s
   - 256x256 Processing Time=4.3s
   - 512x512 Processing Time=16.9s
-  - 1024x1024 Processing Time=70.6s
-  - Still we start to notice some latency towards the end. The logic implemented earlier to handle the last points is not optimal, we can do better by only looping once over the available positions towards the end.
+  - 1024x1024 Processing Time=66.8s
+  - 2048x2048 Processing Time=277.3s
+  - 4072x4072 Processing Time=1184.8s
 
 ## TODO
 - Rework code to transmit endpoints and ports using env variables for flexibility
