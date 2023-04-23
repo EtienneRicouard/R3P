@@ -57,7 +57,9 @@ def callback(ch, method, properties, body):
         randomPosition = randint(0, image.Width()*image.Height() - 1)
         if not randomPosition in positionSet:
             break
+    # Append the new position
     positions = np.append(positions, randomPosition)
+    # Convert the np array to bytes and dump the content in the image
     positionsByte = positions.tobytes()
     builder.head = builder.head - len(positionsByte)
     builder.Bytes[builder.head : (builder.head + len(positionsByte))] = positionsByte
@@ -90,7 +92,6 @@ def callback(ch, method, properties, body):
     builder.Finish(r3pImage)
     buf = builder.Output()
     t2 = time.time()
-    print("Iteration=%s Time=%s" % (newIteration, t2 - t1))
     total_time += t2 - t1
     # Update the api with the final data
     if newIteration == image.Width()*image.Height():
@@ -101,6 +102,7 @@ def callback(ch, method, properties, body):
         return
     # Update iteration every 100 iterations
     elif newIteration%100 == 0:
+        print("Iteration=%s Time=%s" % (newIteration, t2 - t1))
         url = f'http://{pongapihost}:8000/pingpong/update/{jobId}/'
         body = {'iteration': newIteration}
         requests.post(url, json = body)
