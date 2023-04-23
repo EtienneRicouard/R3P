@@ -104,7 +104,9 @@ def callback(ch, method, properties, body):
                 shmColMask.unlink()
                 shmStatus.close()
                 shmStatus.unlink()
-                print('Exiting loop')
+                t2 = time.time()
+                print("Processing Time=%s" % (t2 - t1))
+                ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
             time.sleep(0.00001)
         iteration = struct.unpack('I', statusBuf[0:4])[0]
@@ -180,9 +182,10 @@ def callback(ch, method, properties, body):
             shmColMask.close()
             shmStatus.close()
             # Don't unlink the shms, the other agent will do it when exiting
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
 channel.basic_consume(
-    queue=queue_name, on_message_callback=callback, auto_ack=True)
+    queue=queue_name, on_message_callback=callback)
 
 channel.start_consuming()
