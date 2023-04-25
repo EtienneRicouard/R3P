@@ -25,11 +25,17 @@ python manage.py makemigrations
 python manage.py migrate
 python manage.py runserver
 
-# Open a last console for the pong agents
+# Open a console for the pong agent
 cd back/pongagent
 # setup a python virtual environment (I'm using conda)
 pip install requests pika
-python agent.py
+python agent.py pong
+
+# Open a console for the ping agent
+cd back/pongagent
+# setup a python virtual environment (I'm using conda)
+pip install requests pika
+python agent.py ping
 ```
 
 ## Some remarks
@@ -37,6 +43,36 @@ python agent.py
 - I decided to use rabbitmq queues for the pingpong mecanism with simple python workers taking the jobs. This will ensure that the agents are stateless and entirely based on the queue message that they receive. It also allows to scale them fairly easily by simply duplicating the agents. These workers are not a REST API as indicated by the exercice. Hopefully, that is okay. At first, I felt like rabbitmq was more adapted to this kind of mecanism.
 - Django comes with a swagger accessible at [http://localhost:8000/swagger/](http://localhost:8000/swagger/) if you want to have a quick look at the restapi.
 - I'm not sure what the config endpoint was supposed to be and what it was supposed to be doing so I haven't implemented it.
+
+
+## Architecture
+
+The final solution is composed of 5 servers:
+  - The react server hosting the UI and communicating via HTTP requests with the django rest-api
+  - The django server hosting the rest-api and communicating with rabbitmq to start jobs
+  - The rabbitmq server managing the queue of jobs
+  - A pong agent listening to the rabbitq pong queue
+  - A ping agent listening to the rabbitmq ping queue
+
+### Sequence diagram for image creation
+To explain a bit better how agents interact with one another, here's a sequence diagram for the creation of images:
+![R3P Image Generation Sequence Diagram](./R3PGenerationSequence.png)
+
+### SHM Structure
+In order to speed up the communication between the rest-api server and the agents, I made the choice to use shared memory instead of
+streaming the content of the images through the network between the agents. Here's a description of the SHM structure used.
+![R3P SHM Structure](./R3PSHMStructure.png)
+
+### Sequence diagram for the status report and render process:
+![R3P Status & Render Sequence Diagram](./R3PStatus&RenderSequence.png)
+
+### RabbitMQ queue structure
+- We have an exchange called ```pingpongtopic```. This exchange is bound to 2 queues ```ping``` and ```pong```.
+- The rest-api transmit a job creation message to ```pingpongtopic```. RabbitMQ then transmit the message both to the ```ping``` queue and the ```pong``` queue.
+- Messages are then dispatched to one worker listening to this queue by RabbitMQ. This worker only acknowledges the message once the processing is finished.
+- Thanks to this final acknowledgment, this allows another worker of the same type (either ping or pong) to get the message again in case the current worker crashes.
+- This way, we are not missing messages and all jobs should succeed at some point.
+- By duplicating the ping and pong agents, we can also run multiple jobs in parallel. We could also instantiate the worker dynamically depending on the load on the server.
 
 ## Benchmark
 - Measures were performed on an Intel i7-9750H CPU @ 2.60GHz and 8Gb of RAM. This stack is running on a WSL with local OpenSuse 15.4 with docker installed.
@@ -66,7 +102,7 @@ python agent.py
   - Pong also listens to the queue and start listening to the shared memory for when to start
   - Ping and pong then share the same buffer and iterates as soon as the other finishes its iteration
   - At the end, the agents acknowledge the message and streams the result to the restapi. This way, no messages get lost in case something goes wrong during the generation process.
-- By implementing these results (branch rework-rabbitmq), we reach the following performance:
+- By implementing these results (branch rework-rabbitmq which was merged into master), we reach the following performance:
   - 56x56 Processing Time=0.2s
   - 128x128 Processing Time=1.1s
   - 256x256 Processing Time=4.3s
