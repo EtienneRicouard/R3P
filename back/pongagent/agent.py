@@ -163,8 +163,6 @@ def callback(ch, method, properties, body):
             print(newIteration)
         # Update the api with the final data
         if newIteration == width*height:
-            # Last iteration, tag the status as 2 to stop the other worker
-            statusBuf[4] = 2
             positionList = struct.unpack(f'{width*height}I', posBuf)
             colorList = struct.unpack(f'{width*height}I', colBuf)
             data = []
@@ -173,6 +171,8 @@ def callback(ch, method, properties, body):
             url = f'http://{pongapihost}:8000/pingpong/update/{jobId}/'
             body = {'iteration': newIteration, 'data': json.dumps(data)}
             requests.post(url, json = body)
+            # Last iteration, tag the status as 2 to stop the other worker
+            statusBuf[4] = 2
             t2 = time.time()
             print("Processing Time=%s" % (t2 - t1))
             # Close the shm for this agent
