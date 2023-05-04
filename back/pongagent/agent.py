@@ -56,7 +56,7 @@ binding_key = 'pingpong'
 channel.queue_bind(
     exchange='pingpongtopic', queue=queue_name, routing_key=binding_key)
 
-print(' [*] Waiting for logs. To exit press CTRL+C')
+print(' [*] Waiting for jobs. To exit press CTRL+C')
 
 def callback(ch, method, properties, body):
     t1 = time.time()
@@ -64,6 +64,7 @@ def callback(ch, method, properties, body):
     message = body.decode()
     image = json.loads(message)
     jobId = image['jobId']
+    print('Starting job', jobId)
     width = image['width']
     height = image['height']
 
@@ -155,10 +156,8 @@ def callback(ch, method, properties, body):
         colMaskBuf[randomColor] = 0
         # Fill the buffer with the new color
         colBuf[4*iteration:4*iteration+4] = struct.pack("I", randomColor)
-
-        # Now update the iteration and tag the status buffer for the other agent
+        # Now update the iteration
         statusBuf[0:4] = struct.pack("I", newIteration)
-        statusBuf[4] = 1 if sys.argv[1] == 'ping' else 0
         # Used for debug
         if newIteration%1000 == 0 or newIteration%1000 == 1:
             print(newIteration)
@@ -176,15 +175,19 @@ def callback(ch, method, properties, body):
             requests.post(url, json = body)
             t2 = time.time()
             print("Processing Time=%s" % (t2 - t1))
-            # Close the shm and clear the SHM
+            # Close the shm for this agent
             shmPos.close()
             shmPosMask.close()
             shmCol.close()
             shmColMask.close()
             shmStatus.close()
             # Don't unlink the shms, the other agent will do it when exiting
+            # Acknowledge the message for this agent and exit
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
+        else:
+            # Tag the status buffer for the other agent
+            statusBuf[4] = 1 if sys.argv[1] == 'ping' else 0
 
 channel.basic_consume(
     queue=queue_name, on_message_callback=callback)
