@@ -1,8 +1,7 @@
 import React from "react";
-import { JobModel } from "./JobModel";
 
 interface Props {
-  onSubmit: (job: JobModel) => void;
+  onSubmit: (job: string) => void;
   renderImageUrl: string;
 }
 
@@ -46,7 +45,7 @@ export class NewRenderForm extends React.Component<Props, State> {
       // Retrieve the jobId and update the current job status
       const body = await response.json();
 
-      this.props.onSubmit({jobId: body.message.jobId, completed: false, width: this.state.width, height: this.state.height});
+      this.props.onSubmit(body.message.jobId);
       // Set the state to successful and cleanup the error message
       const newState = {...this.state};
       newState.error = undefined;
@@ -55,7 +54,7 @@ export class NewRenderForm extends React.Component<Props, State> {
     }
     catch(_) {
       // Set the current job id to none
-      this.props.onSubmit({jobId: "", completed: false, width: 0, height: 0});
+      this.props.onSubmit("");
       // Create a new error state
       const newState = {...this.state};
       newState.error = 'Failed to contact backend';
