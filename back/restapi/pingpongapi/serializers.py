@@ -5,4 +5,4 @@ from .models import PingpongJob
 class PingpongJobSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = PingpongJob
-        fields = ('jobId', 'width', 'height', 'iteration', 'data')
+        fields = ('jobId', 'width', 'height', 'iteration', 'data', 'created', 'modified')

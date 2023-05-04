@@ -32,6 +32,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     'pingpongapi.apps.PingpongapiConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -43,6 +45,14 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_yasg',
 ]
+
+ASGI_APPLICATION = 'restapi.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

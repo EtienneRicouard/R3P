@@ -70,7 +70,6 @@ def create_job(request):
   bufferSize = height*width*4 #uint32
   shmPos = shared_memory.SharedMemory(create=True, name=f"{str(jobId)}-pos", size=bufferSize)
   posBuf = shmPos.buf
-  print(f"{str(jobId)}-pos")
   print(shmPos.name)
   for n in range(bufferSize):
     posBuf[n] = 0
