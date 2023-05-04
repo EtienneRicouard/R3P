@@ -67,8 +67,8 @@ def monitoring_thread(jobId):
     # Retrieve the item
     monitor = True
     while monitor:
-        # Update every 100 ms
-        time.sleep(0.1)
+        # Update every 500 ms
+        time.sleep(0.5)
         item = PingpongJob.objects.get(pk=jobId)
         iteration = None
         # Look into the SHM if still running
