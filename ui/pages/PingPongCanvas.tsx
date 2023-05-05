@@ -112,14 +112,16 @@ export class PingPongCanvas extends React.Component<Props, State> {
     }
     const jobComplete = currentJob.height * currentJob.width === currentJob.iteration;
     return (
-      <>
-        <canvas ref={node => (this.canvas = node)} width={currentJob.width} height={currentJob.height}/>
-        {this.state.error === undefined && jobComplete && <button onClick={() => this.verifyColor()} className="form-button">Verify color uniqueness:</button>}
-        {this.state.error === undefined && jobComplete && this.state.colorUnique !== undefined
-          && <div className="regular-text">{this.state.colorUnique ? "All colors are unique" : "At least one color is duplicated"}</div>}
-        {this.state.error !== undefined
-          && <div className="error-message">{this.state.error}</div>}
-      </>
+      <div className="row-start-1 row-span-3 col-start-2 col-span-2">
+        <div className="flex flex-col items-center">
+          <canvas ref={node => (this.canvas = node)} className="mb-8" width={currentJob.width} height={currentJob.height}/>
+          {this.state.error === undefined && jobComplete && <button onClick={() => this.verifyColor()} className="mb-8 form-button">Verify color uniqueness:</button>}
+          {this.state.error === undefined && jobComplete && this.state.colorUnique !== undefined
+            && <div className="mb-8 regular-text">{this.state.colorUnique ? "All colors are unique" : "At least one color is duplicated"}</div>}
+          {this.state.error !== undefined
+            && <div className="mb-8 error-message">{this.state.error}</div>}
+        </div>
+      </div>
     );
   }
 }

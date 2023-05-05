@@ -52,10 +52,10 @@ export default function Home() {
   }, [wsJoblist]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <NewRenderForm onSubmit={setJobId} renderImageUrl={`${baseBackendURL}/create/`} />
-      <PingPongCanvas jobId={jobId} jobList={jobList} uiUrl={`${baseBackendURL}/render`} pollingInterval={5000}/>
-      <JobList jobList={jobList} currentJob={jobId} onJobSelect={setJobId}/>
+    <main className="grid grid-cols-3 grid-rows-3 gap-4 p-8 max-h-screen">
+        <NewRenderForm onSubmit={setJobId} renderImageUrl={`${baseBackendURL}/create/`} />
+        <JobList jobList={jobList} currentJob={jobId} onJobSelect={setJobId}/>
+        <PingPongCanvas jobId={jobId} jobList={jobList} uiUrl={`${baseBackendURL}/render`} pollingInterval={5000}/>
     </main>
   )
 }

@@ -82,7 +82,7 @@ export class NewRenderForm extends React.Component<Props, State> {
   render() {
     const disabled = this.state.height === undefined || this.state.width === undefined || this.state.processing;
     return (
-      <form onSubmit={(e) => this.handleSubmit(e)} className="new-render-form">
+      <form onSubmit={(e) => this.handleSubmit(e)} className="row-start-1 row-span-1 col-start-1 col-span-1 new-render-form">
         <div className="form-label-container">
           <label className="form-label" htmlFor="width">Width</label>
           <input className="form-input"
