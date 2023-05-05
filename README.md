@@ -114,7 +114,6 @@ streaming the content of the images through the network between the agents. Here
 ## TODO
 - Rework code to transmit endpoints and ports using env variables for flexibility
 - Rework docker-compose network to only expose the React and Restapi endpoints. Rabbitmq and the pong agents should be hidden
-- Create a websocket endpoint in the django restapi to stream the progress report instead of polling
 - Implement a scrollbar to navigate in the final rendering based on iteration. Each modification will contact the render endpoint with the given iteration N (also need to take into account the iteration parameter in the render endpoint by applying only the first N values of the data array).
 - Reduce shared memory footprint.
   - The position and color masks size could be divided by 8 as we are only using them as bitmasks. For the colormask, we only need 2097152 bytes, not 16777216 bytes.

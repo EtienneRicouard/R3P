@@ -70,8 +70,6 @@ def create_job(request):
   bufferSize = height*width*4 #uint32
   shmPos = shared_memory.SharedMemory(create=True, name=f"{str(jobId)}-pos", size=bufferSize)
   posBuf = shmPos.buf
-  print(f"{str(jobId)}-pos")
-  print(shmPos.name)
   for n in range(bufferSize):
     posBuf[n] = 0
   shmPos.close()
@@ -176,11 +174,39 @@ def render_job(request, pk):
   # Retrieve the item
   item = PingpongJob.objects.get(pk=pk)
   serializer = PingpongJobSerializer(instance=item)
-  coords = json.loads(serializer.data['data'])
-  imarray = numpy.zeros((serializer.data['width'], serializer.data['height'], 3))
+  width = serializer.data['width']
+  height = serializer.data['height']
+  # Look into the SHM if still running
+  try:
+    shmStatus = shared_memory.SharedMemory(create=False, name=f"{item.jobId}-status", size=6)
+    buf = shmStatus.buf
+    # Lock the SHM to avoid being cleared
+    buf[5] = 1
+    iteration = struct.unpack('I', buf[0:4])[0]
+    shmPos = shared_memory.SharedMemory(create=False, name=f"{item.jobId}-pos")
+    posBuf = shmPos.buf
+    shmCol = shared_memory.SharedMemory(create=False, name=f"{item.jobId}-col")
+    colBuf = shmCol.buf
+    positionList = struct.unpack(f'{width*height}I', posBuf)
+    colorList = struct.unpack(f'{width*height}I', colBuf)
+    coords = []
+    for i in range(iteration):
+      coords.append([positionList[i], colorList[i]])
+    shmPos.close()
+    shmCol.close()
+    # Unlock the SHM
+    buf[5] = 0
+  # Retrieve the data from the DB if the SHM does not exist anymore
+  except:
+    item = PingpongJob.objects.get(pk=pk)
+    serializer = PingpongJobSerializer(instance=item)
+    coords = json.loads(serializer.data['data'])
+
+  # Allocate the final image and fill it
+  imarray = numpy.zeros((width, height, 3))
   for coord in coords:
-    x = coord[0] % serializer.data['width']
-    y = math.floor(coord[0]/serializer.data['width'])
+    x = coord[0] % width
+    y = math.floor(coord[0]/width)
     Blue =  coord[1] & 255
     Green = (coord[1] >> 8) & 255
     Red =   (coord[1] >> 16) & 255
