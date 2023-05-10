@@ -2,7 +2,7 @@ import struct
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
@@ -217,3 +217,12 @@ def render_job(request, pk):
   response = HttpResponse(content_type='application/octet-stream')
   response.write(im.tobytes())
   return response
+
+@api_view(['GET'])
+def get_nebula(request, res, index):
+  filename = f'nebula/nebula_{res}_{index}.jpg'
+  try:
+    with open(filename, "rb") as img:
+      return HttpResponse(img.read(), content_type="image/jpeg")
+  except:
+    return Response({"status": "Unable to find image"}, status=status.HTTP_404_NOT_FOUND)
